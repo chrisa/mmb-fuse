@@ -38,19 +38,62 @@ Fuse::main(
 
 sub mmb_getattr {
     my ($filename) = @_;
-    if ($filename eq '/' || $filename =~ m!/.+\.ssd$!) {
-        return (0, 0, S_IFDIR | 0755, 1, $<, $(, 0, 204800, 0, 0, 0, 1, 200);
+
+    if ($filename eq '/') {
+        # root
+        return (0, 0, S_IFDIR | 0755, 1, $<, $(, 0, (scalar keys %$disk), 0, 0, 0, 1, 200);
+    }
+    elsif ($filename =~ m!^/images/.+\.ssd$!) {
+        # disk image
+        return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, 204800, 0, 0, 0, 1, 200);
+    }
+    elsif ($filename eq '/disks' || $filename eq '/images') {
+        my @entries =
+             (map { $disk->{$_}->{DiskTitle} . '.ssd' } 
+                   grep { $disk->{$_}->{Formatted} }
+                        sort keys %$disk
+                    );
+        return (0, 0, S_IFDIR | 0755, 1, $<, $(, 0, (scalar @entries), 0, 0, 0, 1, 200);
+    }
+    elsif ($filename =~ m!^/disks/(.+)\.ssd$!) {
+        # disk
+        my $image = $1;
+        my $index = find_ssd_index($image);
+        my $files = ssd_info($index);
+        return (0, 0, S_IFDIR | 0755, 1, $<, $(, 0, (scalar keys %$files), 0, 0, 0, 1, 200);
+    }
+    elsif ($filename =~ m!^/disks/(.+).ssd/(.+)$!) {
+        # file on disk
+        my $image = $1;
+        my $file = $2;
+
+        my $index = find_ssd_index($image);
+        my $files = ssd_info($index);
+        my $size = 0;
+
+        for my $f (keys %$files) {
+            next unless exists $files->{$f}->{name};
+            if ($files->{$f}->{name} eq $file) {
+                $size = $files->{$f}->{size};
+                last;
+            }
+        }
+        return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, $size, 0, 0, 0, 1, 200);
     }
     else {
-        print STDERR "getattr: $filename\n";
-
-        return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, 204800, 0, 0, 0, 1, 200);
-    }        
+        # nothing
+    }
 }
 
 sub mmb_getdir {
     my ($dirname) = @_;
-    return (map { $_->{DiskTitle} } values %$disk), 0;
+    
+    if ($dirname eq '/') {
+        return ('disks', 'images', 0);
+    }
+    elsif ($dirname eq '/disks' || $dirname eq '/images') {
+        return (map { $_->{DiskTitle} } values %$disk), 0;
+    }
 }
 
 sub mmb_statfs {
@@ -67,15 +110,34 @@ sub mmb_open {
 
 sub mmb_read {
     my ($pathname, $size, $offset) = @_;
-    return "";
+    
+    if ($pathname =~ m!/disks/(.+).ssd/(.+)$!) {
+        my $ssd = $1;
+        my $filename = $2;
+
+        my $index = find_ssd_index($ssd);
+        my $image = ssd_image($index);
+
+        my $data = BeebUtils::ExtractFile(\$image, $filename);
+        
+        return substr $data, $offset, $size;
+    }
+    elsif ($pathname =~ m!/images/(.+).ssd$!) {
+        my $ssd = $1;
+
+        my $index = find_ssd_index($ssd);
+        my $image = ssd_image($index);
+        
+        return substr $image, $offset, $size;
+    }
 }
 
 sub mmb_flush {
-
+    return (0);
 }
 
 sub mmb_release {
-
+    return (0);
 }
 
 sub mmb_opendir {
@@ -88,22 +150,19 @@ sub mmb_readdir {
     my @entries;
 
     if ($dirname eq '/') {
+        @entries = ('disks', 'images');
+    }
+    elsif ($dirname eq '/disks' || $dirname eq '/images') {
         @entries =
              (map { $disk->{$_}->{DiskTitle} . '.ssd' } 
                    grep { $disk->{$_}->{Formatted} }
                         sort keys %$disk
                     );
     }
-    else {
-        my $ssd;
-        for my $dr (keys %$disk) {
-            if ($dirname eq '/' . $disk->{$dr}->{DiskTitle} . '.ssd') {
-                $ssd = $dr;
-                last;
-            }
-        }
-        my $image = BeebUtils::read_ssd($ssd);
-        my $files = { BeebUtils::read_cat(\$image) };
+    elsif ($dirname =~ m!/disks/(.+).ssd$!) {
+        my $ssd = $1;
+        my $index = find_ssd_index($ssd);
+        my $files = ssd_info($index);
         @entries = map { $files->{$_}->{name} } sort keys %$files;
     }
     push @entries, 0;
@@ -113,4 +172,37 @@ sub mmb_readdir {
 
 sub mmb_releasedir {
     return (0);
+}
+
+# ----------------------------------------------------------------------
+
+sub find_ssd_index {
+    my ($dirname) = @_;
+    
+    my $index;
+    for my $dr (keys %$disk) {
+        if ($dirname eq $disk->{$dr}->{DiskTitle}) {
+            $index = $dr;
+            last;
+        }
+    }
+    
+    return $index;
+}
+
+sub ssd_info {
+    my ($index) = @_;
+    
+    my $image = ssd_image($index);
+    my $files = { BeebUtils::read_cat(\$image) };
+    
+    return $files;
+}
+
+sub ssd_image {
+    my ($index) = @_;
+    
+    my $image = BeebUtils::read_ssd($index);
+    
+    return $image;
 }
