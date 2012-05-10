@@ -55,9 +55,17 @@ sub image_ssd {
             last;
         }
     }
-    my $image = BeebUtils::read_ssd($index);
-    
-    return BeebUtils::SSD::Image->new( name => $name, image => $image );
+
+    if (defined $index) {
+        my $image = BeebUtils::read_ssd($index);
+        return BeebUtils::SSD::Image->new(
+            name => $name,
+            image => $image,
+            index => $index,
+        );
+    }
+
+    return;
 }
 
 sub disk_ssd {

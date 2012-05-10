@@ -16,9 +16,16 @@ mkdir $mountpoint;
 my $mmbfile = '/Users/chris/Projects/mmb-fuse/BEEB.MMB';
 my $mmb = BeebUtils::MMB->new( mmbfile => $mmbfile );
 
+my $fh = 1;
+my $openfiles = {};
+
 Fuse::main(
     mountpoint => $mountpoint,
     debug => 1,
+    utimens => 'main::mmb_utimens',
+    chown => 'main::mmb_chown',
+    chmod => 'main::mmb_chmod',
+    truncate => 'main::mmb_truncate',
     getattr => 'main::mmb_getattr',
     open => 'main::mmb_open',
     read => 'main::mmb_read',
@@ -31,6 +38,29 @@ Fuse::main(
     release => 'main::mmb_release',
     releasedir => 'main::mmb_releasedir',
 );
+
+sub mmb_utimens {
+
+}
+
+sub mmb_chown {
+
+}
+
+sub mmb_chmod {
+
+}
+
+sub mmb_truncate {
+    my ($filename, $offset) = @_;
+    
+    my $entry = $mmb->from_path($filename);
+    if (defined $entry) {
+        $entry->truncate($offset);
+    }
+
+    return (0);
+}
 
 sub mmb_getattr {
     my ($filename) = @_;
@@ -59,20 +89,37 @@ sub mmb_access {
 }
 
 sub mmb_open {
-    return (0);
+    my ($pathname, $flags, $fileinfo) = @_;
+    
+    my $entry = $mmb->from_path($pathname);
+    if (defined $entry) {
+        $entry->open($flags);
+        $openfiles->{++$fh} = $entry;
+        return (0, $fh);
+    }
+    return -ENOENT();
 }
 
 sub mmb_read {
-    my ($pathname, $size, $offset) = @_;
-    
-    my $entry = $mmb->from_path($pathname);
-    my $data = $entry->read;
-    return substr $data, $offset, $size;
+    my ($pathname, $size, $offset, $fh) = @_;
+
+    my $entry = $openfiles->{$fh};
+    if (defined $entry) {
+        my $data = $entry->read;
+        return substr $data, $offset, $size;
+    }
+    return -EBADF();
 }
 
 sub mmb_write {
-    my ($pathname, $data, $size, $fh) = @_;
-        
+    my ($pathname, $data, $offset, $fh) = @_;
+
+    my $entry = $openfiles->{$fh};
+    if (defined $entry) {
+        return $entry->write($data, $offset);
+    }
+    
+    return -EBADF();
 }
 
 sub mmb_flush {
@@ -80,6 +127,13 @@ sub mmb_flush {
 }
 
 sub mmb_release {
+    my ($pathname, $flags, $fh) = @_;
+
+    my $entry = $openfiles->{$fh};
+    if (defined $entry) {
+        $entry->release;
+    }
+    delete $openfiles->{$fh};
     return (0);
 }
 
