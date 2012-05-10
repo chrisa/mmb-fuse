@@ -28,6 +28,7 @@ Fuse::main(
     truncate => 'main::mmb_truncate',
     getattr => 'main::mmb_getattr',
     open => 'main::mmb_open',
+    mknod => 'main::mmb_mknod',
     read => 'main::mmb_read',
     write => 'main::mmb_write',
     statfs => 'main::mmb_statfs',
@@ -98,6 +99,11 @@ sub mmb_open {
         return (0, $fh);
     }
     return -ENOENT();
+}
+
+sub mmb_mknod {
+    my ($pathname, $modes, $device) = @_;
+    return $mmb->mknod($pathname, $modes, $device);
 }
 
 sub mmb_read {
