@@ -819,6 +819,20 @@ sub add_file_to_ssd($$)
 {
   my ($image,$filename)=@_;
 
+  die "$filename is not a file!\n" unless -f $filename;
+  my $fh=new FileHandle "< $filename";
+  die "Can not open $filename: $!\n" unless $fh;
+  my $data;
+  sysread($fh,$data,$DiskSize+3);  # This will always be too large.
+  close($fh);
+
+  add_filedata_to_ssd($image, $filename, $data);
+}
+
+sub add_filedata_to_ssd
+{
+  my ($image, $filename, $data) = @_;
+
   my %files=read_cat($image);
 
   die "Can not operate on large/multi-catalogue disks\n" if $files{""}{chain};
@@ -845,12 +859,6 @@ sub add_file_to_ssd($$)
 
   my $freesect=$last_sect-$first_sect;
 
-  die "$filename is not a file!\n" unless -f $filename;
-  my $fh=new FileHandle "< $filename";
-  die "Can not open $filename: $!\n" unless $fh;
-  my $data;
-  sysread($fh,$data,$DiskSize+3);  # This will always be too large.
-  close($fh);
   my $fsize=length($data);
   if ($fsize > $freesect*256)
   {
@@ -869,7 +877,7 @@ sub add_file_to_ssd($$)
   # If there's an INF file, get that information
   if ( -f "$filename.inf" )
   {
-    $fh=new FileHandle "< $filename.inf";
+    my $fh=new FileHandle "< $filename.inf";
     die "Can not open $filename.inf: $!\n" unless $fh;
     my $line=<$fh>;  chomp($line);
     close($fh);

@@ -12,6 +12,9 @@ has 'mmbfile' => (is => 'ro', isa => 'Str', required => 1);
 has 'dtable' => (is => 'rw', isa => 'Str', required => 0);
 has 'dcat' => (is => 'rw', isa => 'HashRef', required => 0);
 
+has '_disks' => (is => 'ro', isa => 'HashRef', required => 0, default => sub { {} });
+has '_images' => (is => 'ro', isa => 'HashRef', required => 0, default => sub { {} });
+
 sub BUILD {
     my ($self) = @_;
 
@@ -74,6 +77,10 @@ sub image_ssd {
 sub disk_ssd {
     my ($self, $name) = @_;
 
+    if (exists $self->_disks->{$name}) {
+       return $self->_disks->{$name};
+    }
+
     my $index;
     for my $dr (keys %{ $self->dcat }) {
         if ($name eq $self->dcat->{$dr}->{DiskTitle}) {
@@ -81,9 +88,16 @@ sub disk_ssd {
             last;
         }
     }
-    my $image = BeebUtils::read_ssd($index);
+    my $image = BeebUtils::SSD::Image->new(
+        image => BeebUtils::read_ssd($index),
+        name => $name,
+        index => $index,
+    );
 
-    return BeebUtils::SSD::Disk->new( name => $name, image => $image );
+    return BeebUtils::SSD::Disk->new(
+        name => $name,
+        image => $image
+    );
 }
 
 sub getattr {
@@ -137,6 +151,19 @@ sub mknod {
         }
         else {
             return -ENOSPC;
+        }
+    }
+    elsif ($pathname =~ m!^/disks/(.+).ssd/(.+)$!) {
+        my $ssd = $1;
+        my $file = $2;
+        
+        my $entry = $self->disk_ssd($ssd);
+        if (defined $entry) {
+            $self->_disks->{$ssd} = $entry;
+            return $entry->mknod($file);
+        }
+        else {
+            return -ENOENT;
         }
     }
     else {

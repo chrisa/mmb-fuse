@@ -33,6 +33,8 @@ sub open {
             $self->truncate(0);
         }
     }
+
+    return 0;
 }
 
 sub write {
@@ -57,6 +59,8 @@ sub release {
         BeebUtils::put_ssd($self->image, $self->index);
         $self->dirty(0);
     }
+    
+    return 0;
 }
 
 1;

@@ -60,7 +60,7 @@ sub mmb_truncate {
         $entry->truncate($offset);
     }
 
-    return (0);
+    return 0;
 }
 
 sub mmb_getattr {
@@ -86,7 +86,7 @@ sub mmb_statfs {
 }
 
 sub mmb_access {
-    return (0);
+    return 0;
 }
 
 sub mmb_open {
@@ -94,9 +94,9 @@ sub mmb_open {
     
     my $entry = $mmb->from_path($pathname);
     if (defined $entry) {
-        $entry->open($flags);
+        my $error = $entry->open($flags);
         $openfiles->{++$fh} = $entry;
-        return (0, $fh);
+        return ($error, $fh);
     }
     return -ENOENT();
 }
@@ -129,23 +129,24 @@ sub mmb_write {
 }
 
 sub mmb_flush {
-    return (0);
+    return 0;
 }
 
 sub mmb_release {
     my ($pathname, $flags, $fh) = @_;
 
     my $entry = $openfiles->{$fh};
+    my $error = 0;
     if (defined $entry) {
-        $entry->release;
+        $error = $entry->release;
     }
     delete $openfiles->{$fh};
-    return (0);
+    return $error;
 }
 
 sub mmb_opendir {
     my ($dirname) = @_;
-    return (0);
+    return 0;
 }
 
 sub mmb_readdir {
@@ -166,6 +167,6 @@ sub mmb_readdir {
 }
 
 sub mmb_releasedir {
-    return (0);
+    return 0;
 }
 
