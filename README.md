@@ -5,6 +5,32 @@ This is a Fuse wrapper for the "MMB/SSD Utils", found here:
 
   http://sweh.spuddy.org/Beeb/mmb_utils.html
 
+
+Requirements
+------------
+
+Fuse (tested with OSXFUSE on OS X Lion)
+
+Perl Modules:
+
+ * Fuse
+ * Moose
+ * Try::Tiny
+
+
+Usage
+-----
+
+ $ perl mmb.pl
+
+Assumes a BEEB.MMB file in the current directory. 
+
+Please back up your BEEB.MMB file before using this!
+
+
+Licence and Copyright
+---------------------
+
 BeebUtils.pm is (C) 2012 Stephen Harris, and is licenced under the GPL.
 
 Other files here are (C) 2012 Chris Andrews and are also licenced
