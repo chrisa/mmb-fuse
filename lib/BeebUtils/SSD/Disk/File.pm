@@ -69,7 +69,7 @@ sub release {
         };
         if ($self->dirty) {
             $self->dirty(0);
-            return -ENOSPC;
+            return -ENOSPC();
         }
     }
 }

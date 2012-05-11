@@ -21,7 +21,7 @@ my $openfiles = {};
 
 Fuse::main(
     mountpoint => $mountpoint,
-    debug => 1,
+    debug => 0,
     utimens => 'main::mmb_utimens',
     chown => 'main::mmb_chown',
     chmod => 'main::mmb_chmod',

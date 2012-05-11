@@ -5,6 +5,7 @@ use Try::Tiny;
 use BeebUtils;
 use BeebUtils::SSD::Disk::File;
 
+use Errno qw(:POSIX);         # ENOENT EISDIR etc
 use Fcntl qw(:DEFAULT :mode); # S_IFREG S_IFDIR, O_SYNC O_LARGEFILE etc.
 
 has 'name' => (is => 'ro', isa => 'Str', required => 1);
@@ -72,7 +73,7 @@ sub mknod {
 
     my $index = $self->files->{''}->{filecount};
     if ($index > 31) {
-        return -ENOSPC;
+        return -ENOSPC();
     }
     $self->files->{''}->{filecount}++;
 

@@ -150,7 +150,7 @@ sub mknod {
             return (0);
         }
         else {
-            return -ENOSPC;
+            return -ENOSPC();
         }
     }
     elsif ($pathname =~ m!^/disks/(.+).ssd/(.+)$!) {
@@ -163,11 +163,11 @@ sub mknod {
             return $entry->mknod($file);
         }
         else {
-            return -ENOENT;
+            return -ENOENT();
         }
     }
     else {
-        return -EROFS;
+        return -EROFS();
     }
 }
 
