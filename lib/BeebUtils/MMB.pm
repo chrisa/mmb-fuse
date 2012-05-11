@@ -134,7 +134,7 @@ sub mknod {
         my $ssd = $1;
 
         my $index;
-        for (my $i = 0; $index < 255; $index++) {
+        for (my $i = 0; $i < 255; $i++) {
             if (!exists $self->dcat->{$i} || $self->dcat->{$i}->{Formatted} == 0) {
                 $index = $i;
                 last;
