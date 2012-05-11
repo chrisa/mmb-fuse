@@ -33,7 +33,7 @@ sub getattr {
 sub readdir {
     my ($self) = @_;
 
-    my @entries = map { $self->files->{$_}->{unix_name} } sort keys %{ $self->files };
+    my @entries = map { $self->files->{$_}->{unix_name} } grep { $_ } sort keys %{ $self->files };
     return @entries;
 }
 
