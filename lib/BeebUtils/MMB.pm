@@ -88,6 +88,8 @@ sub disk_ssd {
             last;
         }
     }
+    return unless defined $index;
+
     my $image = BeebUtils::SSD::Image->new(
         image => BeebUtils::read_ssd($index),
         name => $name,
@@ -147,6 +149,15 @@ sub mknod {
             BeebUtils::SaveDiskTable(\$dtable);
             $self->dtable($dtable);
             $self->dcat({ BeebUtils::load_dcat(\$self->dtable) });
+
+            my $image = BeebUtils::SSD::Image->new(
+                image => BeebUtils::blank_ssd(),
+                name => $ssd,
+                index => $index,
+            );
+            $image->dirty(1);
+            $image->release;
+
             return (0);
         }
         else {
