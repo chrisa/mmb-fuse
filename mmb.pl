@@ -40,6 +40,7 @@ Fuse::main(
     readdir => 'main::mmb_readdir',
     release => 'main::mmb_release',
     releasedir => 'main::mmb_releasedir',
+    unlink => 'main::mmb_unlink',
 );
 
 sub mmb_utimens {
@@ -180,3 +181,13 @@ sub mmb_releasedir {
     return 0;
 }
 
+sub mmb_unlink {
+    my ($pathname) = @_;
+
+    my $entry = $mmb->from_path($pathname);
+    if (defined $entry) {
+        $entry->unlink;
+    }
+
+    return 0;
+}

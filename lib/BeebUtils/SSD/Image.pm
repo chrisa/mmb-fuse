@@ -12,13 +12,7 @@ has 'dirty' => (is => 'rw', isa => 'Bool', required => 0, default => 0);
 
 sub getattr {
     my ($self) = @_;
-
-    my %files = BeebUtils::read_cat(\$self->data);
-    my $size = 0;
-    if (exists $files{0}) {
-        $size = 256 * $files{0}->{start} + $files{0}->{size};
-    }
-
+    my $size = $self->space_used;
     return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, $size, 0, 0, 0, 1, 200);
 }
 
@@ -69,6 +63,32 @@ sub release {
     }
     
     return 0;
+}
+
+# --------------------------------------------------------------------
+
+sub space_used {
+    my ($self) = @_;
+
+    my %files = BeebUtils::read_cat(\$self->data);
+    my $size = 0;
+    if (exists $files{0}) {
+        $size = 256 * $files{0}->{start} + $files{0}->{size};
+    }
+    return $size;
+}
+
+sub size {
+    my ($self) = @_;
+
+    my %files = BeebUtils::read_cat(\$self->data);
+    my $size = $files{""}{disk_size} * 256;
+    return $size;
+}
+
+sub free_space {
+    my ($self) = @_;
+    return $self->size - $self->space_used;
 }
 
 1;

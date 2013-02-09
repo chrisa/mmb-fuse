@@ -14,15 +14,7 @@ has 'files' => (is => 'rw', isa => 'HashRef', required => 0);
 
 sub BUILD {
     my ($self) = @_;
-
-    my %files = BeebUtils::read_cat(\$self->image->data);
-    
-    for my $index (keys %files) {
-        next if $index eq '';
-        $files{$index}->{unix_name} = $files{$index}->{name};
-        $files{$index}->{unix_name} =~ s!/!_!g;
-    }
-    $self->files(\%files);
+    $self->read_files;
 }
 
 sub getattr {
@@ -89,6 +81,21 @@ sub mknod {
     };
 
     return 0;
+}
+
+# --------------------------------------------------------------------
+
+sub read_files {
+    my ($self) = @_;
+
+    my %files = BeebUtils::read_cat(\$self->image->data);
+    for my $index (keys %files) {
+        next if $index eq '';
+        $files{$index}->{unix_name} = $files{$index}->{name};
+        $files{$index}->{unix_name} =~ s!/!_!g;
+    }
+
+    $self->files(\%files);
 }
 
 1;

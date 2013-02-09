@@ -985,7 +985,6 @@ sub delete_file($$$)
       substr($$image,256+248,8)="\0" x 8;
       my $nfiles=ord(substr($$image,256+5,1))-8;
       substr($$image,256+5,1)=chr($nfiles);
-      print "Deleted $filename\n" if $force;
       last;
     }
   }

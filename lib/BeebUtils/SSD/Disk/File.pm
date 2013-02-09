@@ -45,14 +45,8 @@ sub write {
     my $length = length $data;
     my $file = $self->data;
 
-    my %files = BeebUtils::read_cat(\$self->ssd->image->data);
-
-    if (exists $files{0}) {
-        my $size = (256 * $files{0}->{start}) + $files{0}->{size};
-        my $max_size = $files{""}{disk_size} * 256;
-        if (($max_size - $size) < $length) {
-            return -ENOSPC();
-        }
+    if ($self->ssd->image->free_space < $length) {
+        return -ENOSPC();
     }
 
     if (length $file < ($length + $offset)) {
@@ -75,7 +69,7 @@ sub release {
             $self->ssd->image->data($data);
             $self->ssd->image->dirty(1);
             $self->ssd->image->release;
-            $self->ssd->BUILD;
+            $self->ssd->read_files;
             $self->dirty(0);
         }
         catch {
@@ -86,6 +80,19 @@ sub release {
             return -ENOSPC();
         }
     }
+}
+
+sub unlink {
+    my ($self) = @_;
+
+    my $data = $self->ssd->image->data;
+    BeebUtils::delete_file(1, $self->name, \$data);
+    $self->ssd->image->data($data);
+    $self->ssd->image->dirty(1);
+    $self->ssd->image->release;
+    $self->ssd->read_files;
+    $self->dirty(0);
+    return;
 }
 
 1;
