@@ -7,21 +7,29 @@ use Fcntl qw(:DEFAULT :mode); # S_IFREG S_IFDIR, O_SYNC O_LARGEFILE etc.
 
 has 'name' => (is => 'ro', isa => 'Str', required => 1);
 has 'index' => (is => 'ro', isa => 'Int', required => 1);
-has 'image' => (is => 'rw', isa => 'Str', required => 1);
+has 'data' => (is => 'rw', isa => 'Str', required => 1);
 has 'dirty' => (is => 'rw', isa => 'Bool', required => 0, default => 0);
 
 sub getattr {
-    return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, 204800, 0, 0, 0, 1, 200);
+    my ($self) = @_;
+
+    my %files = BeebUtils::read_cat(\$self->data);
+    my $size = 0;
+    if (exists $files{0}) {
+        $size = 256 * $files{0}->{start} + $files{0}->{size};
+    }
+
+    return (0, 0, S_IFREG | 0644, 1, $<, $(, 0, $size, 0, 0, 0, 1, 200);
 }
 
 sub truncate {
     my ($self, $offset) = @_;
-    $self->image('');
+    $self->data('');
 }
 
 sub read {
     my ($self) = @_;
-    return $self->image;
+    return $self->data;
 }
 
 sub open {
@@ -40,14 +48,14 @@ sub open {
 sub write {
     my ($self, $data, $offset) = @_;
     my $length = length $data;
-    my $image = $self->image;
+    my $image = $self->data;
 
     if (length $image < ($length + $offset)) {
         $image .= ("\0" x (($length + $offset) - length $image));
     }
     substr $image, $offset, $length, $data;
 
-    $self->image($image);
+    $self->data($image);
     
     return $length;
 }
@@ -56,7 +64,7 @@ sub release {
     my ($self) = @_;
 
     if ($self->dirty) {
-        BeebUtils::put_ssd($self->image, $self->index);
+        BeebUtils::put_ssd($self->data, $self->index);
         $self->dirty(0);
     }
     

@@ -25,6 +25,7 @@ Fuse::main(
     utimens => 'main::mmb_utimens',
     chown => 'main::mmb_chown',
     chmod => 'main::mmb_chmod',
+    getxattr => 'main::mmb_getxattr',
     setxattr => 'main::mmb_setxattr',
     truncate => 'main::mmb_truncate',
     getattr => 'main::mmb_getattr',
@@ -53,8 +54,12 @@ sub mmb_chmod {
     return 0;
 }
 
-sub mmb_setxattr {
+sub mmb_getxattr {
     return 0;
+}
+
+sub mmb_setxattr {
+    return -EOPNOTSUPP();
 }
 
 sub mmb_truncate {

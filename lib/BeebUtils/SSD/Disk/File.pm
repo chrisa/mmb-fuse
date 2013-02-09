@@ -20,6 +20,7 @@ sub getattr {
 
 sub truncate {
     my ($self, $offset) = @_;
+    $self->dirty(1);
     $self->data('');
 }
 
@@ -44,6 +45,16 @@ sub write {
     my $length = length $data;
     my $file = $self->data;
 
+    my %files = BeebUtils::read_cat(\$self->ssd->image->data);
+
+    if (exists $files{0}) {
+        my $size = (256 * $files{0}->{start}) + $files{0}->{size};
+        my $max_size = $files{""}{disk_size} * 256;
+        if (($max_size - $size) < $length) {
+            return -ENOSPC();
+        }
+    }
+
     if (length $file < ($length + $offset)) {
         $file .= ("\0" x (($length + $offset) - length $file));
     }
@@ -58,14 +69,17 @@ sub release {
     my ($self) = @_;
 
     if ($self->dirty) {
-        my $image = $self->ssd->image->image;
         try {
-            BeebUtils::add_filedata_to_ssd(\$image, $self->name, $self->data);
-            $self->ssd->image->image($image);
+            my $data = $self->ssd->image->data;
+            BeebUtils::add_filedata_to_ssd(\$data, $self->name, $self->data);
+            $self->ssd->image->data($data);
             $self->ssd->image->dirty(1);
             $self->ssd->image->release;
             $self->ssd->BUILD;
             $self->dirty(0);
+        }
+        catch {
+            warn "caught: $_";
         };
         if ($self->dirty) {
             $self->dirty(0);

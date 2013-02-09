@@ -15,7 +15,7 @@ has 'files' => (is => 'rw', isa => 'HashRef', required => 0);
 sub BUILD {
     my ($self) = @_;
 
-    my %files = BeebUtils::read_cat(\$self->image->image);
+    my %files = BeebUtils::read_cat(\$self->image->data);
     
     for my $index (keys %files) {
         next if $index eq '';
@@ -54,7 +54,7 @@ sub file {
 
     my $data;
     try {
-        $data = BeebUtils::ExtractFile(\$self->image->image, $file->{name}, %{ $self->files });
+        $data = BeebUtils::ExtractFile(\$self->image->data, $file->{name}, %{ $self->files });
     };
     if (defined $data) {
         return BeebUtils::SSD::Disk::File->new(

@@ -45,7 +45,7 @@ sub from_path {
         $entry = $self->disk_ssd($ssd)->file($file);
     }
     else {
-        #die "no entry for $path";
+        #return -ENOENT();
     }
 
     return $entry;
@@ -63,10 +63,9 @@ sub image_ssd {
     }
 
     if (defined $index) {
-        my $image = BeebUtils::read_ssd($index);
         return BeebUtils::SSD::Image->new(
+            data => BeebUtils::read_ssd($index),
             name => $name,
-            image => $image,
             index => $index,
         );
     }
@@ -91,7 +90,7 @@ sub disk_ssd {
     return unless defined $index;
 
     my $image = BeebUtils::SSD::Image->new(
-        image => BeebUtils::read_ssd($index),
+        data => BeebUtils::read_ssd($index),
         name => $name,
         index => $index,
     );
@@ -151,7 +150,7 @@ sub mknod {
             $self->dcat({ BeebUtils::load_dcat(\$self->dtable) });
 
             my $image = BeebUtils::SSD::Image->new(
-                image => BeebUtils::blank_ssd(),
+                data => BeebUtils::blank_ssd(),
                 name => $ssd,
                 index => $index,
             );
@@ -167,6 +166,10 @@ sub mknod {
     elsif ($pathname =~ m!^/disks/(.+).ssd/(.+)$!) {
         my $ssd = $1;
         my $file = $2;
+
+        unless ($file =~ /^.\..+$/) {
+            return -EINVAL();
+        }
         
         my $entry = $self->disk_ssd($ssd);
         if (defined $entry) {
