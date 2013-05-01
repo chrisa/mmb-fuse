@@ -1,19 +1,23 @@
 package BeebUtils::MMB;
-use Moose;
+use Moo;
 
-use BeebUtils;
-use BeebUtils::SSD::Image;
-use BeebUtils::SSD::Disk;
+=head1 NAME
+
+BeebUtils::MMB - an MMB file containing many SSD images
+
+=cut
 
 use Errno qw(:POSIX);         # ENOENT EISDIR etc
 use Fcntl qw(:DEFAULT :mode); # S_IFREG S_IFDIR, O_SYNC O_LARGEFILE etc.
 
-has 'mmbfile' => (is => 'ro', isa => 'Str', required => 1);
-has 'dtable' => (is => 'rw', isa => 'Str', required => 0);
-has 'dcat' => (is => 'rw', isa => 'HashRef', required => 0);
+use BeebUtils;
 
-has '_disks' => (is => 'ro', isa => 'HashRef', required => 0, default => sub { {} });
-has '_images' => (is => 'ro', isa => 'HashRef', required => 0, default => sub { {} });
+has 'mmbfile' => (is => 'ro', required => 1);
+has 'dtable' => (is => 'rw', required => 0);
+has 'dcat' => (is => 'rw', required => 0);
+
+has '_disks' => (is => 'ro', required => 0, default => sub { {} });
+has '_images' => (is => 'ro', required => 0, default => sub { {} });
 
 sub BUILD {
     my ($self) = @_;
@@ -22,6 +26,23 @@ sub BUILD {
     $self->dtable(BeebUtils::LoadDiskTable());
     $self->dcat({ BeebUtils::load_dcat(\$self->dtable) });
 }
+
+=head1 METHODS
+
+=over
+
+=item from_path($path)
+
+Returns an instance of the appropriate object corresponding to the
+given $path.
+
+This may be:
+
+ directory: /disks/*.ssd   -> BeebUtils::SSD::Disk
+      file: /disks/*.ssd/* -> BeebUtils::SSD::Disk::File
+      file: /images/*.ssd  -> BeebUtils::SSD::Image
+
+=cut
 
 sub from_path {
     my ($self, $path) = @_;
@@ -45,11 +66,18 @@ sub from_path {
         $entry = $self->disk_ssd($ssd)->file($file);
     }
     else {
-        #return -ENOENT();
+        return;
     }
 
     return $entry;
 }
+
+=item image_ssd($name)
+
+Returns an instance of BeebUtils::SSD::Image corresponding to the
+given image file name.
+
+=cut
 
 sub image_ssd {
     my ($self, $name) = @_;
@@ -185,4 +213,4 @@ sub mknod {
     }
 }
 
-1;
+__PACKAGE__->meta->make_immutable;

@@ -1,14 +1,14 @@
 package BeebUtils::SSD::Image;
-use Moose;
+use Moo;
 
 use BeebUtils;
 
 use Fcntl qw(:DEFAULT :mode); # S_IFREG S_IFDIR, O_SYNC O_LARGEFILE etc.
 
-has 'name' => (is => 'ro', isa => 'Str', required => 1);
-has 'index' => (is => 'ro', isa => 'Int', required => 1);
-has 'data' => (is => 'rw', isa => 'Str', required => 1);
-has 'dirty' => (is => 'rw', isa => 'Bool', required => 0, default => 0);
+has 'name' => (is => 'ro', required => 1);
+has 'index' => (is => 'ro', required => 1);
+has 'data' => (is => 'rw', required => 1);
+has 'dirty' => (is => 'rw', required => 0, default => sub { 0 });
 
 sub getattr {
     my ($self) = @_;
@@ -91,4 +91,4 @@ sub free_space {
     return $self->size - $self->space_used;
 }
 
-1;
+__PACKAGE__->meta->make_immutable;
